@@ -1,5 +1,6 @@
 import java.io.File;
-import java.util.Arrays;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -64,6 +65,24 @@ public class K_Means {
             changes = previousdocumentGroup.equals(documentGroup);
             iteration++;
         }
+
+        //TODO: Print Results
+        printResults(centroids, documentGroup);
+    }
+
+    private void printResults(Document[] centroids, HashMap<Integer, Integer> documentGroup) {
+        PrintWriter pw = null;
+        try{
+            pw = new PrintWriter(output);
+        } catch (FileNotFoundException f){
+            System.err.println("Error: Output file not found");
+            f.printStackTrace();
+        }
+        pw.println(centroids.length + " groups found");
+        for (int i = 0; i < centroids.length; i++){
+
+        }
+
     }
 
     private void relocateCentroids(Document[] centroids, HashMap<Integer, Integer> documentGroup, HashMap <Integer, Document> correspondence) {
