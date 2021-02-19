@@ -19,12 +19,10 @@ public class ProcessedDocument extends Document {
         switch (m){
             case Cosine:
                 return computeCosineSimilarity (d);
-                break;
             case Euclidean:
-                return computeEuclideanSimilairty (d);
-                break;
+                return computeEuclideanSimilarity (d);
             case Other:
-                return otherSimilarity (d);
+                //return otherSimilarity (d);
                 break;
         }
         return 0.0f;
@@ -42,5 +40,14 @@ public class ProcessedDocument extends Document {
         }
         float denominator = (float) (Math.sqrt(denomFirst) + Math.sqrt(denomSecond));
         return numerator / denominator;
+    }
+
+    private float computeEuclideanSimilarity (Document d){
+        ProcessedDocument doc = (ProcessedDocument) d;
+        float sum = 0.0f;
+        for (int i = 0; i < words.length; i++){
+            sum += Math.pow(words[i] - doc.words[i], 2);
+        }
+        return (float) Math.sqrt(sum);
     }
 }
