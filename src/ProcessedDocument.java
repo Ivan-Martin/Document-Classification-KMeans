@@ -21,9 +21,8 @@ public class ProcessedDocument extends Document {
                 return computeCosineSimilarity (d);
             case Euclidean:
                 return computeEuclideanSimilarity (d);
-            case Other:
-                //return otherSimilarity (d);
-                break;
+            case Jaccard:
+                return jaccardCoefficient (d);
         }
         return 0.0f;
     }
@@ -49,5 +48,22 @@ public class ProcessedDocument extends Document {
             sum += Math.pow(words[i] - doc.words[i], 2);
         }
         return (float) Math.sqrt(sum);
+    }
+
+    private float jaccardCoefficient (Document d){
+        ProcessedDocument doc = (ProcessedDocument) d;
+        HashSet <Integer> set1 = new HashSet <> ();
+        for (int i : words) set1.add(i);
+
+        HashSet <Integer> set2 = new HashSet <> ();
+        for (int i : doc.words) set2.add(i);
+
+        HashSet <Integer> intersection = new HashSet<Integer>(set1);
+        intersection.retainAll(set2);
+
+        HashSet <Integer> union = new HashSet <Integer> (set1);
+        union.addAll(set2);
+
+        return (float) intersection.size() / (float) union.size();
     }
 }
