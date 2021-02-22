@@ -9,7 +9,6 @@ public class K_Means {
 
     private ArrayList<Document> collection;
     private File output;
-    private boolean printGroups;
     private int groups;
     private int limit = 1000;
 
@@ -19,6 +18,26 @@ public class K_Means {
         } else {
             calculateGroups(m, groups);
         }
+    }
+
+    public void calculateGroups (){
+        calculateGroups(null);
+    }
+
+    public void setCollection(ArrayList<Document> collection) {
+        this.collection = collection;
+    }
+
+    public void setOutput(File output) {
+        this.output = output;
+    }
+
+    public void setGroups(int groups) {
+        this.groups = groups;
+    }
+
+    public void setLimit(int limit) {
+        this.limit = limit;
     }
 
     private void calculateGroups(Method m, int groups){
@@ -31,6 +50,9 @@ public class K_Means {
         HashMap <Integer, Document> correspondence = new HashMap<>();
         for (Document d : collection){
             correspondence.put(d.id, d);
+            if (d instanceof ProcessedDocument){
+                ((ProcessedDocument) d).setMethod(m);
+            }
         }
 
         //Second part: initialize Centroids by picking random documents.
@@ -66,26 +88,35 @@ public class K_Means {
             iteration++;
         }
 
-        //TODO: Print Results
-        printResults(centroids, documentGroup);
+        printResults(centroids, documentGroup, correspondence);
     }
 
-    private void printResults(Document[] centroids, HashMap<Integer, Integer> documentGroup) {
-        PrintWriter pw = null;
+    private void printResults(Document[] centroids, HashMap<Integer, Integer> documentGroup, HashMap <Integer, Document> correspondence) {
+        PrintWriter pw;
         try{
             pw = new PrintWriter(output);
         } catch (FileNotFoundException f){
-            System.err.println("Error: Output file not found");
+            System.err.println("Error: Output file not found, changing to printing to console.");
             f.printStackTrace();
+            pw = new PrintWriter(System.out);
         }
         pw.println(centroids.length + " groups found");
-        for (int i = 0; i < centroids.length; i++){
 
+        HashMap <Integer, ArrayList <Document>> clusters = locateDocuments(documentGroup, correspondence);
+
+        for (int i = 0; i < centroids.length; i++){
+            ArrayList <Document> list = clusters.get(i);
+            pw.println("Group: " + i);
+            pw.println("Group centroid: " + centroids[i].name);
+            for (Document di : list){
+                pw.println(di.name);
+            }
+            pw.println();
         }
 
     }
 
-    private void relocateCentroids(Document[] centroids, HashMap<Integer, Integer> documentGroup, HashMap <Integer, Document> correspondence) {
+    private HashMap <Integer, ArrayList <Document>> locateDocuments (HashMap<Integer, Integer> documentGroup, HashMap <Integer, Document> correspondence) {
         HashMap <Integer, ArrayList <Document>> clusters = new HashMap<>();
         //Compute each cluster documents
         for (Integer i : documentGroup.keySet()){
@@ -98,7 +129,12 @@ public class K_Means {
                 clusters.put(group, list);
             }
         }
+        return clusters;
+    }
 
+    private void relocateCentroids(Document[] centroids, HashMap<Integer, Integer> documentGroup, HashMap <Integer, Document> correspondence) {
+
+        HashMap <Integer, ArrayList <Document>> clusters = locateDocuments(documentGroup, correspondence);
 
         for (int group : clusters.keySet()){
             float min = Float.MAX_VALUE;
