@@ -11,10 +11,13 @@ public class K_Means {
     private File output;
     private int groups;
     private int limit = 1000;
+    private boolean print = true;
+
+    //TODO: Include seed to Random methods.
 
     public void calculateGroups (Method m){
         if (groups == 0){
-
+            optimizeGroups(m);
         } else {
             calculateGroups(m, groups);
         }
@@ -40,7 +43,7 @@ public class K_Means {
         this.limit = limit;
     }
 
-    private void calculateGroups(Method m, int groups){
+    private HashMap<Integer, ArrayList<Document>> calculateGroups(Method m, int groups){
         //First part: Initializations
         // 1.- Set the proper method to each document
         // 2.- Set the correspondence between id and document object
@@ -88,7 +91,9 @@ public class K_Means {
             iteration++;
         }
 
-        printResults(centroids, documentGroup, correspondence);
+        if (print) printResults(centroids, documentGroup, correspondence);
+
+        return locateDocuments(documentGroup, correspondence);
     }
 
     private void printResults(Document[] centroids, HashMap<Integer, Integer> documentGroup, HashMap <Integer, Document> correspondence) {
@@ -114,6 +119,27 @@ public class K_Means {
             pw.println();
         }
 
+    }
+
+    private void printResults(HashMap <Integer, ArrayList <Document>> clusters, int clusterNumber){
+        PrintWriter pw;
+        try{
+            pw = new PrintWriter(output);
+        } catch (FileNotFoundException f){
+            System.err.println("Error: Output file not found, changing to printing to console.");
+            f.printStackTrace();
+            pw = new PrintWriter(System.out);
+        }
+        pw.println(clusterNumber + " groups found");
+
+        for (int i = 0; i < clusterNumber; i++){
+            ArrayList <Document> list = clusters.get(i);
+            pw.println("Group: " + i);
+            for (Document di : list){
+                pw.println(di.name);
+            }
+            pw.println();
+        }
     }
 
     private HashMap <Integer, ArrayList <Document>> locateDocuments (HashMap<Integer, Integer> documentGroup, HashMap <Integer, Document> correspondence) {
@@ -169,6 +195,70 @@ public class K_Means {
         return group;
     }
 
+    private void optimizeGroups (Method m) {
+        print = false;
+        int bestClusters = 2;
+        float bestCoefficient = 0.0f;
+        HashMap <Integer, ArrayList <Document>> bestResult = null;
+        for (int i = 2; i <= 20; i++){
+            HashMap <Integer, ArrayList <Document>> result = calculateGroups(m, i);
+            float silhouetteCoefficient = calculateSilhouetteCoefficient(result);
+            if (silhouetteCoefficient > bestCoefficient){
+                bestCoefficient = silhouetteCoefficient;
+                bestClusters = i;
+                bestResult = result;
+            }
+        }
+        print = true;
+        printResults(bestResult, bestClusters);
+
+    }
+
+    private float calculateSilhouetteCoefficient(HashMap<Integer, ArrayList<Document>> result) {
+        float a = 0.0f; //Stores the avg similarity of each document between documents of the same cluster
+        HashMap <Integer, Integer> documentCluster = new HashMap<>();
+        //Stores which cluster each document belongs to.
+        for (int i : result.keySet()){
+            //Computers the similarity of each document to the rest of documents of same cluster.
+            float sumSimilarity = 0.0f;
+            ArrayList <Document> list = result.get(i);
+            for (Document d : list){
+                documentCluster.put(d.id, i);
+                float avgIndividualSimilarity = 0.0f;
+                for (Document d2 : list){
+                    if (d.id != d2.id){
+                        avgIndividualSimilarity += d.computeSimilarity(d2);
+                    }
+                }
+                avgIndividualSimilarity /= list.size() - 1;
+                sumSimilarity += avgIndividualSimilarity;
+            }
+            float avgClusterSimilarity = sumSimilarity / list.size();
+            a += avgClusterSimilarity;
+        }
+        a /= result.keySet().size();
+
+        float b; //Stores the avg similarity between documents of the same cluster and different clusters
+
+        float sumDifferentSimilarities = 0.0f;
+        for (Document d : collection){
+            int cluster = documentCluster.get(d.id);
+            float indivSimilarity = 0.0f;
+            for (int k : result.keySet()){
+                if (k != cluster){
+                    for (Document doc : result.get(k)){
+                        indivSimilarity += d.computeSimilarity(doc);
+                    }
+                }
+            }
+            indivSimilarity /= collection.size() - result.get(cluster).size();
+            sumDifferentSimilarities += indivSimilarity;
+        }
+
+        b = sumDifferentSimilarities / collection.size();
+
+        return (b - a) / Math.max(a, b);
+    }
 
 
 }
