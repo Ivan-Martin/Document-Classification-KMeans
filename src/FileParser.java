@@ -14,24 +14,31 @@ public class FileParser {
         }
 
         try {
-            ArrayList<Integer> list = new ArrayList<>();
+            ArrayList<String> list = new ArrayList<>();
 
             String name = br.readLine();
 
             String line;
 
             while ((line = br.readLine()) != null){
-                list.add(Integer.parseInt(line));
+                list.add(line);
             }
 
             Object [] array2 = list.toArray();
 
-            int [] array = new int [array2.length];
+
+            ArrayList <Integer> arrayList = new ArrayList<>();
             for (int i = 0; i < array2.length; i++){
-                array[i] = (int) array2[i];
+                String splitted [] = ((String) array2[i]).split(" ");
+                int word = Integer.parseInt(splitted[0]);
+                int weight = Integer.parseInt(splitted[1]);
+                while (arrayList.size() < word) {
+                    arrayList.add(0);
+                }
+                arrayList.set(word, weight);
             }
 
-            ProcessedDocument doc = new ProcessedDocument(array, null);
+            ProcessedDocument doc = new ProcessedDocument(arrayList,null);
             doc.id = id;
             doc.name = name;
             return doc;

@@ -27,7 +27,7 @@ public class Main {
         System.out.println("C - Cosine Similarity");
         System.out.println("E - Euclidean Distance");
 
-        String read = in.nextLine().toUpperCase();;
+        String read = in.nextLine().toUpperCase();
         while (!(read.equals("J") || read.equals("C") || read.equals("E"))) {
             System.out.println("Comparison method must be [J/C/E]");
             read = in.nextLine().toUpperCase();
@@ -54,7 +54,8 @@ public class Main {
                 break;
         }
 
+        long time = System.currentTimeMillis();
         kmeans.calculateGroups(m);
-
+        System.out.println("Time taken: " + (System.currentTimeMillis() - time));
     }
 }

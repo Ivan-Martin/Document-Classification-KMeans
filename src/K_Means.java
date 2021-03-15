@@ -1,6 +1,7 @@
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -119,6 +120,8 @@ public class K_Means {
             pw.println();
         }
 
+        pw.flush();
+
     }
 
     private void printResults(HashMap <Integer, ArrayList <Document>> clusters, int clusterNumber){
@@ -182,7 +185,7 @@ public class K_Means {
     }
 
     private int selectGroup(Document document, Document[] centroids) {
-        float max = Float.MIN_VALUE;
+        float max = -Float.MAX_VALUE;
         int group = -1;
         for (int i = 0; i < centroids.length; i++){
             Document d = centroids [i];
@@ -191,6 +194,9 @@ public class K_Means {
                 max = similarity;
                 group = i;
             }
+        }
+        if (group == -1){
+            System.err.println("Algo va a fallar");
         }
         return group;
     }
