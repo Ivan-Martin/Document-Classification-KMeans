@@ -58,9 +58,14 @@ public class ProcessedDocument extends Document {
 
     private float jaccardCoefficient (Document d){
         ProcessedDocument doc = (ProcessedDocument) d;
-        HashSet<Integer> set1 = new HashSet<>(words);
-
-        HashSet<Integer> set2 = new HashSet<>(doc.words);
+        HashSet<Integer> set1 = new HashSet<>();
+        for (int i = 0; i < words.size(); i++){
+            if (words.get(i) != 0) set1.add(i);
+        }
+        HashSet<Integer> set2 = new HashSet<>();
+        for (int i = 0; i < doc.words.size(); i++){
+            if (doc.words.get(i) != 0) set2.add(i);
+        }
 
         HashSet <Integer> intersection = new HashSet<Integer>(set1);
         intersection.retainAll(set2);
