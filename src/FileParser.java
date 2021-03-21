@@ -1,5 +1,6 @@
 import java.io.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class FileParser {
 
@@ -27,18 +28,15 @@ public class FileParser {
             Object [] array2 = list.toArray();
 
 
-            ArrayList <Integer> arrayList = new ArrayList<>();
+            HashMap <Integer, Float> map = new HashMap<>();
             for (int i = 0; i < array2.length; i++){
                 String splitted [] = ((String) array2[i]).split(" ");
                 int word = Integer.parseInt(splitted[0]);
-                int weight = Integer.parseInt(splitted[1]);
-                while (arrayList.size() < word) {
-                    arrayList.add(0);
-                }
-                arrayList.set(word, weight);
+                float weight = Integer.parseInt(splitted[1]);
+                map.put(word, weight);
             }
 
-            ProcessedDocument doc = new ProcessedDocument(arrayList,null);
+            ProcessedDocument doc = new ProcessedDocument(map,null);
             doc.id = id;
             doc.name = name;
             return doc;

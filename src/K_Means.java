@@ -4,16 +4,18 @@ import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Random;
 
 public class K_Means {
 
     private ArrayList<Document> collection;
     private File output;
     private int groups;
-    private int limit = 1000;
+    private int limit = 100;
     private boolean print = true;
-
-    //TODO: Include seed to Random methods.
+    private int seed = 24;
+    private boolean printSilhouette = true;
+    private boolean maximize = true;
 
     public void calculateGroups (Method m){
         if (groups == 0){
@@ -43,10 +45,23 @@ public class K_Means {
         this.limit = limit;
     }
 
+    public void setMaximize (boolean maximize) { this.maximize = maximize; }
+
     private HashMap<Integer, ArrayList<Document>> calculateGroups(Method m, int groups){
         //First part: Initializations
         // 1.- Set the proper method to each document
         // 2.- Set the correspondence between id and document object
+        // 3.- Set the maximize / minimize function
+
+        switch (m){
+            case Euclidean:
+                maximize = false;
+                break;
+            case Cosine:
+            case Jaccard:
+                maximize = true;
+                break;
+        }
 
         Document [] centroids = new Document [groups];
         //At centroids[C] stores the Document representing the centroid of C group.
@@ -59,7 +74,7 @@ public class K_Means {
         }
 
         //Second part: initialize Centroids by picking random documents.
-        Collections.shuffle(collection);
+        Collections.shuffle(collection, new Random(seed));
         for (int i = 0; i < groups; i++){
             centroids[i] = collection.get(i);
         }
@@ -80,14 +95,14 @@ public class K_Means {
             documentGroup = new HashMap <> ();
             for (int i = 0; i < collection.size(); i++){
                 //For each document, select the nearest centroid to it and assign it to that group.
-                int nearestGroup = selectGroup(collection.get(i), centroids);
+                int nearestGroup = selectGroup(collection.get(i), centroids, maximize);
                 documentGroup.put(i, nearestGroup);
             }
 
             relocateCentroids(centroids, documentGroup, correspondence);
             //Relocate the centroid of each group given the documents now allocated.
 
-            changes = previousdocumentGroup.equals(documentGroup);
+            changes = !previousdocumentGroup.equals(documentGroup);
             iteration++;
         }
 
@@ -111,16 +126,17 @@ public class K_Means {
 
         for (int i = 0; i < centroids.length; i++){
             ArrayList <Document> list = clusters.get(i);
-            pw.println("Group: " + i);
-            pw.println("Group centroid: " + centroids[i].name);
-            for (Document di : list){
-                pw.println(di.name);
+            if (list != null){
+                pw.println("Group: " + i);
+                for (Document di : list){
+                    pw.println(di.name);
+                }
+                pw.println();
             }
-            pw.println();
         }
 
         pw.flush();
-
+        pw.close();
     }
 
     private void printResults(HashMap <Integer, ArrayList <Document>> clusters, int clusterNumber){
@@ -136,12 +152,16 @@ public class K_Means {
 
         for (int i = 0; i < clusterNumber; i++){
             ArrayList <Document> list = clusters.get(i);
-            pw.println("Group: " + i);
-            for (Document di : list){
-                pw.println(di.name);
+            if (list != null){
+                pw.println("Group: " + i);
+                for (Document di : list){
+                    pw.println(di.name);
+                }
+                pw.println();
             }
-            pw.println();
         }
+        pw.flush();
+        pw.close();
     }
 
     private HashMap <Integer, ArrayList <Document>> locateDocuments (HashMap<Integer, Integer> documentGroup, HashMap <Integer, Document> correspondence) {
@@ -163,49 +183,50 @@ public class K_Means {
     private void relocateCentroids(Document[] centroids, HashMap<Integer, Integer> documentGroup, HashMap <Integer, Document> correspondence) {
 
         HashMap <Integer, ArrayList <Document>> clusters = locateDocuments(documentGroup, correspondence);
-
+        int maxId = 0;
         for (int group : clusters.keySet()){
-            float min = Float.MAX_VALUE;
             Document center = centroids[group];
-            for (Document d : clusters.get(group)){
-                float value = 0.0f;
-                for (Document d_i : clusters.get(group)){
-                    if (d_i.id != d.id){
-                        value += d.computeSimilarity(d_i);
-                    }
-                }
-                if (value < min){
-                    min = value;
-                    center = d;
-                }
+            Object [] array = clusters.get(group).toArray();
+            Document [] arrayD = new Document [array.length];
+            for (int i = 0; i < arrayD.length; i++){
+                arrayD[i] = (Document) array[i];
+                maxId = Math.max(maxId, arrayD[i].id);
             }
-            centroids[group] = center;
+            Document newCenter = center.calculateCentroid(arrayD);
+            centroids[group] = newCenter;
+        }
+        for (Document d : centroids){
+            maxId++;
+            d.id = maxId;
         }
     }
 
-    private int selectGroup(Document document, Document[] centroids) {
+    private int selectGroup(Document document, Document[] centroids, boolean maximize) {
         float max = -Float.MAX_VALUE;
-        int group = -1;
+        float min = Float.MAX_VALUE;
+        int maxGroup = -1;
+        int minGroup = -1;
         for (int i = 0; i < centroids.length; i++){
             Document d = centroids [i];
             float similarity = document.computeSimilarity(d);
             if (max < similarity){
                 max = similarity;
-                group = i;
+                maxGroup = i;
+            }
+            if (min > similarity){
+                min = similarity;
+                minGroup = i;
             }
         }
-        if (group == -1){
-            System.err.println("Algo va a fallar");
-        }
-        return group;
+        return maximize ? maxGroup : minGroup;
     }
 
     private void optimizeGroups (Method m) {
         print = false;
         int bestClusters = 2;
-        float bestCoefficient = 0.0f;
+        float bestCoefficient = -1.0f;
         HashMap <Integer, ArrayList <Document>> bestResult = null;
-        for (int i = 2; i <= 20; i++){
+        for (int i = 2; i <= 10; i++){
             HashMap <Integer, ArrayList <Document>> result = calculateGroups(m, i);
             float silhouetteCoefficient = calculateSilhouetteCoefficient(result);
             if (silhouetteCoefficient > bestCoefficient){
@@ -213,6 +234,7 @@ public class K_Means {
                 bestClusters = i;
                 bestResult = result;
             }
+            if (printSilhouette) System.out.println("Silhouette coefficient for groups: " + i + " equals " + silhouetteCoefficient);
         }
         print = true;
         printResults(bestResult, bestClusters);
